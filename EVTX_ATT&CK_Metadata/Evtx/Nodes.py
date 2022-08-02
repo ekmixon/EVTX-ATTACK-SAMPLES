@@ -116,7 +116,7 @@ class BXmlNode(Block):
             self._buf, self.offset(), self._chunk, self._parent)
 
     def __str__(self):
-        return "BXmlNode(offset={})".format(hex(self.offset()))
+        return f"BXmlNode(offset={hex(self.offset())})"
 
     def dump(self):
         b = self._buf[self.offset():self.offset() + self.length()]
@@ -138,11 +138,7 @@ class BXmlNode(Block):
         ret = []
         ofs = self.tag_length()
 
-        if max_children:
-            gen = list(range(max_children))
-        else:
-            gen = itertools.count()
-
+        gen = list(range(max_children)) if max_children else itertools.count()
         for _ in gen:
             # we lose error checking by masking off the higher nibble,
             #   but, some tokens like 0x01, make use of the flags nibble.
@@ -183,8 +179,7 @@ class BXmlNode(Block):
         for child in self.children():
             if isinstance(child, EndOfStreamNode):
                 return child
-            ret = child.find_end_of_stream()
-            if ret:
+            if ret := child.find_end_of_stream():
                 return ret
         return None
 
@@ -202,9 +197,7 @@ class NameStringNode(BXmlNode):
             self._buf, self.offset(), self._chunk)
 
     def __str__(self):
-        return "NameStringNode(offset={}, length={}, end={})".format(
-            hex(self.offset()), hex(self.length()),
-            hex(self.offset() + self.length()))
+        return f"NameStringNode(offset={hex(self.offset())}, length={hex(self.length())}, end={hex(self.offset() + self.length())})"
 
     def string(self):
         return str(self._string())
@@ -230,8 +223,7 @@ class TemplateNode(BXmlNode):
             self._buf, self.offset(), self._chunk, self._parent)
 
     def __str__(self):
-        return "TemplateNode(offset={}, guid={}, length={})".format(
-            hex(self.offset()), self.guid(), hex(self.length()))
+        return f"TemplateNode(offset={hex(self.offset())}, guid={self.guid()}, length={hex(self.length())})"
 
     def tag_length(self):
         return 0x18
@@ -255,8 +247,7 @@ class EndOfStreamNode(BXmlNode):
             self._buf, self.offset(), self._chunk, self._parent)
 
     def __str__(self):
-        return "EndOfStreamNode(offset={}, length={}, token={})".format(
-            hex(self.offset()), hex(self.length()), 0x00)
+        return f"EndOfStreamNode(offset={hex(self.offset())}, length={hex(self.length())}, token=0)"
 
     def flags(self):
         return self.token() >> 4
@@ -300,19 +291,11 @@ class OpenStartElementNode(BXmlNode):
             self._buf, self.offset(), self._chunk)
 
     def __str__(self):
-        return "OpenStartElementNode(offset={}, name={}, length={}, token={}, end={}, taglength={}, endtag={})".format(
-            hex(self.offset()), self.tag_name(),
-            hex(self.length()), hex(self.token()),
-            hex(self.offset() + self.length()),
-            hex(self.tag_length()),
-            hex(self.offset() + self.tag_length()))
+        return f"OpenStartElementNode(offset={hex(self.offset())}, name={self.tag_name()}, length={hex(self.length())}, token={hex(self.token())}, end={hex(self.offset() + self.length())}, taglength={hex(self.tag_length())}, endtag={hex(self.offset() + self.tag_length())})"
 
     @memoize
     def is_empty_node(self):
-        for child in self.children():
-            if type(child) is CloseEmptyElementNode:
-                return True
-        return False
+        return any(type(child) is CloseEmptyElementNode for child in self.children())
 
     def flags(self):
         return self.token() >> 4
@@ -349,8 +332,7 @@ class CloseStartElementNode(BXmlNode):
             self._buf, self.offset(), self._chunk, self._parent)
 
     def __str__(self):
-        return "CloseStartElementNode(offset={}, length={}, token={})".format(
-            hex(self.offset()), hex(self.length()), hex(self.token()))
+        return f"CloseStartElementNode(offset={hex(self.offset())}, length={hex(self.length())}, token={hex(self.token())})"
 
     def flags(self):
         return self.token() >> 4
@@ -382,8 +364,7 @@ class CloseEmptyElementNode(BXmlNode):
             self._buf, self.offset(), self._chunk, self._parent)
 
     def __str__(self):
-        return "CloseEmptyElementNode(offset={}, length={}, token={})".format(
-            hex(self.offset()), hex(self.length()), hex(0x03))
+        return f"CloseEmptyElementNode(offset={hex(self.offset())}, length={hex(self.length())}, token={hex(0x03)})"
 
     def flags(self):
         return self.token() >> 4
@@ -413,8 +394,7 @@ class CloseElementNode(BXmlNode):
             self._buf, self.offset(), self._chunk, self._parent)
 
     def __str__(self):
-        return "CloseElementNode(offset={}, length={}, token={})".format(
-            hex(self.offset()), hex(self.length()), hex(self.token()))
+        return f"CloseElementNode(offset={hex(self.offset())}, length={hex(self.length())}, token={hex(self.token())})"
 
     def flags(self):
         return self.token() >> 4
@@ -467,7 +447,7 @@ def get_variant_value(buf, offset, chunk, parent, type_, length=None):
     try:
         TypeClass = types[type_]
     except IndexError:
-        raise NotImplementedError("Type {} not implemented".format(type_))
+        raise NotImplementedError(f"Type {type_} not implemented")
     return TypeClass(buf, offset, chunk, parent, length=length)
 
 
@@ -487,9 +467,7 @@ class ValueNode(BXmlNode):
             self._buf, self.offset(), self._chunk, self._parent)
 
     def __str__(self):
-        return "ValueNode(offset={}, length={}, token={}, value={})".format(
-            hex(self.offset()), hex(self.length()),
-            hex(self.token()), self.value().string())
+        return f"ValueNode(offset={hex(self.offset())}, length={hex(self.length())}, token={hex(self.token())}, value={self.value().string()})"
 
     def flags(self):
         return self.token() >> 4
@@ -533,9 +511,7 @@ class AttributeNode(BXmlNode):
             self._buf, self.offset(), self._chunk, self._parent)
 
     def __str__(self):
-        return "AttributeNode(offset={}, length={}, token={}, name={}, value={})".format(
-            hex(self.offset()), hex(self.length()), hex(self.token()),
-            self.attribute_name(), self.attribute_value())
+        return f"AttributeNode(offset={hex(self.offset())}, length={hex(self.length())}, token={hex(self.token())}, name={self.attribute_name()}, value={self.attribute_value()})"
 
     def flags(self):
         return self.token() >> 4
@@ -582,8 +558,7 @@ class CDataSectionNode(BXmlNode):
             self._buf, self.offset(), self._chunk, self._parent)
 
     def __str__(self):
-        return "CDataSectionNode(offset={}, length={}, token={})".format(
-            hex(self.offset()), hex(self.length()), 0x07)
+        return f"CDataSectionNode(offset={hex(self.offset())}, length={hex(self.length())}, token=7)"
 
     def flags(self):
         return self.token() >> 4
@@ -620,8 +595,7 @@ class CharacterReferenceNode(BXmlNode):
             self._buf, self.offset(), self._chunk, self._parent)
 
     def __str__(self):
-        return "CharacterReferenceNode(offset={}, length={}, token={})".format(
-            hex(self.offset()), hex(self.length()), hex(0x08))
+        return f"CharacterReferenceNode(offset={hex(self.offset())}, length={hex(self.length())}, token={hex(0x08)})"
 
     def entity_reference(self):
         return '&#x%04x;' % (self.entity())
@@ -661,11 +635,10 @@ class EntityReferenceNode(BXmlNode):
             self._buf, self.offset(), self._chunk, self._parent)
 
     def __str__(self):
-        return "EntityReferenceNode(offset={}, length={}, token={})".format(
-            hex(self.offset()), hex(self.length()), hex(0x09))
+        return f"EntityReferenceNode(offset={hex(self.offset())}, length={hex(self.length())}, token={hex(0x09)})"
 
     def entity_reference(self):
-        return "&{};".format(self._chunk.strings()[self.string_offset()].string())
+        return f"&{self._chunk.strings()[self.string_offset()].string()};"
 
     def flags(self):
         return self.token() >> 4
@@ -700,11 +673,10 @@ class ProcessingInstructionTargetNode(BXmlNode):
             self._buf, self.offset(), self._chunk, self._parent)
 
     def __str__(self):
-        return "ProcessingInstructionTargetNode(offset={}, length={}, token={})".format(
-            hex(self.offset()), hex(self.length()), hex(0x0A))
+        return f"ProcessingInstructionTargetNode(offset={hex(self.offset())}, length={hex(self.length())}, token={hex(0x0A)})"
 
     def processing_instruction_target(self):
-        return "<?{}".format(self._chunk.strings()[self.string_offset()].string())
+        return f"<?{self._chunk.strings()[self.string_offset()].string()}"
 
     def flags(self):
         return self.token() >> 4
@@ -739,17 +711,13 @@ class ProcessingInstructionDataNode(BXmlNode):
             self._buf, self.offset(), self._chunk, self._parent)
 
     def __str__(self):
-        return "ProcessingInstructionDataNode(offset={}, length={}, token={})".format(
-            hex(self.offset()), hex(self.length()), hex(0x0B))
+        return f"ProcessingInstructionDataNode(offset={hex(self.offset())}, length={hex(self.length())}, token={hex(0x0B)})"
 
     def flags(self):
         return self.token() >> 4
 
     def string(self):
-        if self.string_length() > 0:
-            return " {}?>".format(self._string)
-        else:
-            return "?>"
+        return f" {self._string}?>" if self.string_length() > 0 else "?>"
 
     def tag_length(self):
         return self._tag_length
@@ -782,8 +750,7 @@ class TemplateInstanceNode(BXmlNode):
             self._buf, self.offset(), self._chunk, self._parent)
 
     def __str__(self):
-        return "TemplateInstanceNode(offset={}, length={}, token={})".format(
-            hex(self.offset()), hex(self.length()), hex(0x0C))
+        return f"TemplateInstanceNode(offset={hex(self.offset())}, length={hex(self.length())}, token={hex(0x0C)})"
 
     def flags(self):
         return self.token() >> 4
@@ -826,9 +793,7 @@ class NormalSubstitutionNode(BXmlNode):
             self._buf, self.offset(), self._chunk, self._parent)
 
     def __str__(self):
-        return "NormalSubstitutionNode(offset={}, length={}, token={}, index={}, type={})".format(
-            hex(self.offset()), hex(self.length()), hex(self.token()),
-            self.index(), self.type())
+        return f"NormalSubstitutionNode(offset={hex(self.offset())}, length={hex(self.length())}, token={hex(self.token())}, index={self.index()}, type={self.type()})"
 
     def flags(self):
         return self.token() >> 4
@@ -863,8 +828,7 @@ class ConditionalSubstitutionNode(BXmlNode):
             self._buf, self.offset(), self._chunk, self._parent)
 
     def __str__(self):
-        return "ConditionalSubstitutionNode(offset={}, length={}, token={})".format(
-            hex(self.offset()), hex(self.length()), hex(0x0E))
+        return f"ConditionalSubstitutionNode(offset={hex(self.offset())}, length={hex(self.length())}, token={hex(0x0E)})"
 
     def should_suppress(self, substitutions):
         sub = substitutions[self.index()]
@@ -904,8 +868,7 @@ class StreamStartNode(BXmlNode):
             self._buf, self.offset(), self._chunk, self._parent)
 
     def __str__(self):
-        return "StreamStartNode(offset={}, length={}, token={})".format(
-            hex(self.offset()), hex(self.length()), hex(self.token()))
+        return f"StreamStartNode(offset={hex(self.offset())}, length={hex(self.length())}, token={hex(self.token())})"
 
     def verify(self):
         return self.flags() == 0x0 and \
@@ -938,8 +901,7 @@ class RootNode(BXmlNode):
             self._buf, self.offset(), self._chunk, self._parent)
 
     def __str__(self):
-        return "RootNode(offset={}, length={})".format(
-            hex(self.offset()), hex(self.length()))
+        return f"RootNode(offset={hex(self.offset())}, length={hex(self.length())})"
 
     def tag_length(self):
         return 0
@@ -957,10 +919,7 @@ class RootNode(BXmlNode):
           This does not take into account the substitutions that may be
           at the end of this element.
         """
-        children_length = 0
-
-        for child in self.children():
-            children_length += child.length()
+        children_length = sum(child.length() for child in self.children())
 
         return self.tag_length() + children_length
 
@@ -987,8 +946,7 @@ class RootNode(BXmlNode):
         '''
         instance = self.template_instance()
         offset = self._chunk.offset() + instance.template_offset()
-        node = TemplateNode(self._buf, offset, self._chunk, instance)
-        return node
+        return TemplateNode(self._buf, offset, self._chunk, instance)
 
     @memoize
     def substitutions(self):
@@ -1048,9 +1006,7 @@ class VariantTypeNode(BXmlNode):
             self._chunk)
 
     def __str__(self):
-        return "{}(offset={}, length={}, string={})".format(
-            self.__class__.__name__, hex(self.offset()),
-            hex(self.length()), self.string())
+        return f"{self.__class__.__name__}(offset={hex(self.offset())}, length={hex(self.length())}, string={self.string()})"
 
     def tag_length(self):
         raise NotImplementedError("tag_length not implemented for {!r}".format(self))
@@ -1110,9 +1066,11 @@ class WstringTypeNode(VariantTypeNode):
                                length=(self._length // 2))
 
     def tag_length(self):
-        if self._length is None:
-            return (2 + (self.string_length() * 2))
-        return self._length
+        return (
+            (2 + (self.string_length() * 2))
+            if self._length is None
+            else self._length
+        )
 
     def string(self):
         return self._string().rstrip("\x00")
@@ -1133,9 +1091,7 @@ class StringTypeNode(VariantTypeNode):
             self.declare_field("string", "_string", 0x0, length=self._length)
 
     def tag_length(self):
-        if self._length is None:
-            return (2 + (self.string_length()))
-        return self._length
+        return (2 + (self.string_length())) if self._length is None else self._length
 
     def string(self):
         return self._string().rstrip("\x00")
@@ -1318,9 +1274,7 @@ class BooleanTypeNode(VariantTypeNode):
         return 4
 
     def string(self):
-        if self.int32() > 0:
-            return "True"
-        return "False"
+        return "True" if self.int32() > 0 else "False"
 
 
 class BinaryTypeNode(VariantTypeNode):
@@ -1339,9 +1293,7 @@ class BinaryTypeNode(VariantTypeNode):
             self.declare_field("binary", "binary", 0x0, length=self._length)
 
     def tag_length(self):
-        if self._length is None:
-            return (4 + self.size())
-        return self._length
+        return (4 + self.size()) if self._length is None else self._length
 
     def string(self):
         return base64.b64encode(self.binary()).decode('ascii')
@@ -1374,15 +1326,11 @@ class SizeTypeNode(VariantTypeNode):
                                            parent, length=length)
         if self._length == 0x4:
             self.declare_field("dword", "num", 0x0)
-        elif self._length == 0x8:
-            self.declare_field("qword", "num", 0x0)
         else:
             self.declare_field("qword", "num", 0x0)
 
     def tag_length(self):
-        if self._length is None:
-            return 8
-        return self._length
+        return 8 if self._length is None else self._length
 
     def string(self):
         return str(self.num())
@@ -1434,17 +1382,16 @@ class SIDTypeNode(VariantTypeNode):
 
     @memoize
     def elements(self):
-        ret = []
-        for i in range(self.num_elements()):
-            ret.append(self.unpack_dword(self.current_field_offset() + 4 * i))
-        return ret
+        return [
+            self.unpack_dword(self.current_field_offset() + 4 * i)
+            for i in range(self.num_elements())
+        ]
 
     @memoize
     def id(self):
-        ret = "S-{}-{}".format(
-            self.version(), (self.id_high() << 16) ^ self.id_low())
+        ret = f"S-{self.version()}-{self.id_high() << 16 ^ self.id_low()}"
         for elem in self.elements():
-            ret += "-{}".format(elem)
+            ret += f"-{elem}"
         return ret
 
     def tag_length(self):
@@ -1529,29 +1476,22 @@ class WstringArrayTypeNode(VariantTypeNode):
                                length=(self._length))
 
     def tag_length(self):
-        if self._length is None:
-            return (2 + self.binary_length())
-        return self._length
+        return (2 + self.binary_length()) if self._length is None else self._length
 
     def string(self):
         binary = self.binary()
         acc = []
         while len(binary) > 0:
-            match = re.search(b"((?:[^\x00].)+)", binary)
-            if match:
+            if match := re.search(b"((?:[^\x00].)+)", binary):
                 frag = match.group()
-                acc.append("<string>")
-                acc.append(frag.decode("utf16"))
-                acc.append("</string>\n")
+                acc.extend(("<string>", frag.decode("utf16"), "</string>\n"))
                 binary = binary[len(frag) + 2:]
                 if len(binary) == 0:
                     break
             frag = re.search(b"(\x00*)", binary).group()
-            if len(frag) % 2 == 0:
-                for _ in range(len(frag) // 2):
-                    acc.append("<string></string>\n")
-            else:
+            if len(frag) % 2 != 0:
                 raise ParseException("Error parsing uneven substring of NULLs")
+            acc.extend("<string></string>\n" for _ in range(len(frag) // 2))
             binary = binary[len(frag):]
         return "".join(acc)
 

@@ -97,8 +97,7 @@ class Evtx(object):
         @rtype generator of ChunkHeader
         @return A generator of ChunkHeaders from this EVTX file.
         """
-        for chunk in self._fh.chunks():
-            yield chunk
+        yield from self._fh.chunks()
 
     @ensure_contexted
     def records(self):
@@ -109,8 +108,7 @@ class Evtx(object):
         @return A generator of Records from this EVTX file.
         """
         for chunk in self.chunks():
-            for record in chunk.records():
-                yield record
+            yield from chunk.records()
 
     @ensure_contexted
     def get_record(self, record_num):
@@ -132,7 +130,7 @@ class Evtx(object):
 
 class FileHeader(Block):
     def __init__(self, buf, offset):
-        logger.debug("FILE HEADER at {}.".format(hex(offset)))
+        logger.debug(f"FILE HEADER at {hex(offset)}.")
         super(FileHeader, self).__init__(buf, offset)
         self.declare_field("string", "magic", 0x0, length=8)
         self.declare_field("qword",  "oldest_chunk")
@@ -151,7 +149,7 @@ class FileHeader(Block):
         return "FileHeader(buf={!r}, offset={!r})".format(self._buf, self._offset)
 
     def __str__(self):
-        return "FileHeader(offset={})".format(hex(self._offset))
+        return f"FileHeader(offset={hex(self._offset)})"
 
     def check_magic(self):
         """
@@ -228,11 +226,7 @@ class FileHeader(Block):
         If `include_inactive` is set to true, enumerate chunks beyond those
         declared in the file header (and may therefore be corrupt).
         """
-        if include_inactive:
-            chunk_count = sys.maxsize
-        else:
-            chunk_count = self.chunk_count()
-
+        chunk_count = sys.maxsize if include_inactive else self.chunk_count()
         i = 0
         ofs = self._offset + self.header_chunk_size()
         while ofs + 0x10000 <= len(self._buf) and i < chunk_count:
@@ -291,7 +285,7 @@ class Template(object):
 
 class ChunkHeader(Block):
     def __init__(self, buf, offset):
-        logger.debug("CHUNK HEADER at {}.".format(hex(offset)))
+        logger.debug(f"CHUNK HEADER at {hex(offset)}.")
         super(ChunkHeader, self).__init__(buf, offset)
         self._strings = None
         self._templates = None
@@ -312,7 +306,7 @@ class ChunkHeader(Block):
         return "ChunkHeader(buf={!r}, offset={!r})".format(self._buf, self._offset)
 
     def __str__(self):
-        return "ChunkHeader(offset={})".format(hex(self._offset))
+        return f"ChunkHeader(offset={hex(self._offset)})"
 
     def check_magic(self):
         """
@@ -448,7 +442,7 @@ class ChunkHeader(Block):
 
 class Record(Block):
     def __init__(self, buf, offset, chunk):
-        logger.debug("Record at {}.".format(hex(offset)))
+        logger.debug(f"Record at {hex(offset)}.")
         super(Record, self).__init__(buf, offset)
         self._chunk = chunk
 
@@ -466,7 +460,7 @@ class Record(Block):
         return "Record(buf={!r}, offset={!r})".format(self._buf, self._offset)
 
     def __str__(self):
-        return "Record(offset={})".format(hex(self._offset))
+        return f"Record(offset={hex(self._offset)})"
 
     def root(self):
         return RootNode(self._buf, self._offset + 0x18, self._chunk, self)

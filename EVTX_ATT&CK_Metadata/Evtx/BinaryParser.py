@@ -49,9 +49,7 @@ class memoize(object):
         self.func = func
 
     def __get__(self, obj, objtype=None):
-        if obj is None:
-            return self.func
-        return partial(self, obj)
+        return self.func if obj is None else partial(self, obj)
 
     def __call__(self, *args, **kw):
         obj = args[0]
@@ -131,7 +129,7 @@ class BinaryParserException(Exception):
         return "BinaryParserException({!r})".format(self._value)
 
     def __str__(self):
-        return "Binary Parser Exception: {}".format(self._value)
+        return f"Binary Parser Exception: {self._value}"
 
 
 class ParseException(BinaryParserException):
@@ -151,19 +149,19 @@ class ParseException(BinaryParserException):
         return "ParseException({!r})".format(self._value)
 
     def __str__(self):
-        return "Parse Exception({})".format(self._value)
+        return f"Parse Exception({self._value})"
 
 
 class OverrunBufferException(ParseException):
     def __init__(self, readOffs, bufLen):
-        tvalue = "read: {}, buffer length: {}".format(hex(readOffs), hex(bufLen))
+        tvalue = f"read: {hex(readOffs)}, buffer length: {hex(bufLen)}"
         super(ParseException, self).__init__(tvalue)
 
     def __repr__(self):
         return "OverrunBufferException({!r})".format(self._value)
 
     def __str__(self):
-        return "Tried to parse beyond the end of the file ({})".format(self._value)
+        return f"Tried to parse beyond the end of the file ({self._value})"
 
 
 class Block(object):
@@ -204,17 +202,19 @@ class Block(object):
 
         if length is None:
             def no_length_handler():
-                f = getattr(self, "unpack_" + type)
+                f = getattr(self, f"unpack_{type}")
                 return f(offset)
+
             setattr(self, name, no_length_handler)
         else:
 
             def explicit_length_handler():
-                f = getattr(self, "unpack_" + type)
+                f = getattr(self, f"unpack_{type}")
                 return f(offset, length)
+
             setattr(self, name, explicit_length_handler)
 
-        setattr(self, "_off_" + name, offset)
+        setattr(self, f"_off_{name}", offset)
         if type == "byte":
             self._implicit_offset = offset + 1
         elif type == "int8":
@@ -462,7 +462,7 @@ class Block(object):
             return bytes("".encode("ascii"))
         o = self._offset + offset
         try:
-            return bytes(struct.unpack_from("<{}s".format(length), self._buf, o)[0])
+            return bytes(struct.unpack_from(f"<{length}s", self._buf, o)[0])
         except struct.error:
             raise OverrunBufferException(o, len(self._buf))
 

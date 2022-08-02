@@ -91,7 +91,7 @@ def validate_name(s):
       RuntimeError: if the string is not suitable to be an XML name.
     '''
     if not NAME_PATTERN.match(s):
-        raise RuntimeError('invalid xml name: %s' % (s))
+        raise RuntimeError(f'invalid xml name: {s}')
     return s
 
 
@@ -108,8 +108,8 @@ def render_root_node_with_subs(root_node, subs):
     """
     def rec(node, acc):
         if isinstance(node, e_nodes.EndOfStreamNode):
-            pass  # intended
-        elif isinstance(node, e_nodes.OpenStartElementNode):
+            return
+        if isinstance(node, e_nodes.OpenStartElementNode):
             acc.append("<")
             acc.append(node.tag_name())
             for child in node.children():
@@ -153,10 +153,11 @@ def render_root_node_with_subs(root_node, subs):
         elif isinstance(node, e_nodes.NormalSubstitutionNode):
             sub = subs[node.index()]
 
-            if isinstance(sub, e_nodes.BXmlTypeNode):
-                sub = render_root_node(sub.root())
-            else:
-                sub = escape_value(sub.string())
+            sub = (
+                render_root_node(sub.root())
+                if isinstance(sub, e_nodes.BXmlTypeNode)
+                else escape_value(sub.string())
+            )
 
             acc.append(sub)
         elif isinstance(node, e_nodes.ConditionalSubstitutionNode):
